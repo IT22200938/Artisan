@@ -13,7 +13,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 class UserServiceApplicationTests {
 
     @Container
-    static MongoDBContainer mongo = new MongoDBContainer("mongo:7");
+    static MongoDBContainer mongo = new MongoDBContainer("mongo:6");
 
     @DynamicPropertySource
     static void mongoProps(DynamicPropertyRegistry registry) {

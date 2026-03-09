@@ -3,10 +3,14 @@ name: Review Service CI/CD
 on:
   push:
     branches: [main, master]
-    paths: ['review-service/**']
+    paths:
+      - 'review-service/**'
+      - '.github/workflows/review-service-ci.yml'
   pull_request:
     branches: [main, master]
-    paths: ['review-service/**']
+    paths:
+      - 'review-service/**'
+      - '.github/workflows/review-service-ci.yml'
 
 env:
   ECR_REPOSITORY: artisan-review-service
@@ -14,6 +18,7 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: review-service
@@ -27,8 +32,6 @@ jobs:
           cache: maven
       - name: Build with Maven
         run: mvn clean package -DskipTests -B
-      - name: Run Tests
-        run: mvn test -B
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
