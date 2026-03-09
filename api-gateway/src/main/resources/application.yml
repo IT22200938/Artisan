@@ -1,0 +1,55 @@
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      routes:
+        # User Service - auth
+        - id: user-service-auth
+          uri: ${USER_SERVICE_URL:http://localhost:8080}
+          predicates:
+            - Path=/api/auth/**
+
+        # User Service - users
+        - id: user-service-users
+          uri: ${USER_SERVICE_URL:http://localhost:8080}
+          predicates:
+            - Path=/api/users/**
+
+        # Listing Service
+        - id: listing-service
+          uri: ${LISTING_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/api/listings/**
+
+        # Order Service
+        - id: order-service
+          uri: ${ORDER_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/api/orders/**
+
+        # Review Service
+        - id: review-service
+          uri: ${REVIEW_SERVICE_URL:http://localhost:8083}
+          predicates:
+            - Path=/api/reviews/**
+
+      globalcors:
+        add-to-simple-url-handler-mapping: true
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: "*"
+            allowedMethods: "GET,POST,PUT,DELETE,OPTIONS"
+            allowedHeaders: "*"
+
+server:
+  port: ${PORT:8084}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,gateway
+  endpoint:
+    health:
+      show-details: when-authorized

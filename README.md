@@ -4,24 +4,26 @@ A microservices-based e-commerce platform for handmade crafts (jewelry, textiles
 
 ## Architecture
 
-| Microservice | Port | Responsibility | Integrates With |
-|--------------|------|----------------|-----------------|
-| **User Service** | 8080 | Auth, profiles (buyer/seller) | Order, Review |
-| **Listing Service** | 8081 | Product catalog, search | Order |
-| **Order Service** | 8082 | Cart, checkout, mock payment | User, Listing |
-| **Review Service** | 8083 | Post-purchase reviews | User |
+| Component | Port | Responsibility |
+|-----------|------|----------------|
+| **API Gateway** | 8084 | Single entry point, routes to all services |
+| **User Service** | 8080 | Auth, profiles (buyer/seller) |
+| **Listing Service** | 8081 | Product catalog, search |
+| **Order Service** | 8082 | Cart, checkout, mock payment |
+| **Review Service** | 8083 | Post-purchase reviews |
 
 ## Project Structure
 
 ```
 Artisan/
+├── api-gateway/           # API Gateway (Spring Cloud Gateway)
 ├── user-service/          # Auth, profiles
-├── listing-service/       # Product catalog, stock
-├── order-service/         # Cart, checkout
-├── review-service/        # Post-purchase reviews
-├── docs/api-contracts/    # OpenAPI specs
-├── docker-compose.yml     # Run all services locally
-└── .github/workflows/     # CI/CD per service
+├── listing-service/      # Product catalog, stock
+├── order-service/        # Cart, checkout
+├── review-service/       # Post-purchase reviews
+├── docs/api-contracts/   # OpenAPI specs
+├── docker-compose.yml    # Run all services locally
+└── .github/workflows/    # CI/CD per service
 ```
 
 ## Quick Start – All Services
@@ -45,12 +47,19 @@ cp .env.example .env
 docker-compose up --build -d
 ```
 
-| Service | URL |
-|---------|-----|
-| User | http://localhost:8080/swagger-ui.html |
-| Listing | http://localhost:8081/swagger-ui.html |
-| Order | http://localhost:8082/swagger-ui.html |
-| Review | http://localhost:8083/swagger-ui.html |
+| Entry Point | URL |
+|-------------|-----|
+| **API Gateway** (all routes) | http://localhost:8084 |
+| User (via gateway) | http://localhost:8084/api/auth/*, /api/users/* |
+| Listing (via gateway) | http://localhost:8084/api/listings/* |
+| Order (via gateway) | http://localhost:8084/api/orders/* |
+| Review (via gateway) | http://localhost:8084/api/reviews/* |
+
+Direct service URLs (for Swagger):
+- User: http://localhost:8080/swagger-ui.html
+- Listing: http://localhost:8081/swagger-ui.html
+- Order: http://localhost:8082/swagger-ui.html
+- Review: http://localhost:8083/swagger-ui.html
 
 ### Option 2: Run Individually (Maven)
 
