@@ -25,6 +25,7 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
           cache: maven
+          cache-dependency-path: api-gateway/pom.xml
       - name: Build with Maven
         run: mvn clean package -DskipTests -B
       - name: Run Tests
