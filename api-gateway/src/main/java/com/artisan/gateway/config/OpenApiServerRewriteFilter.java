@@ -9,6 +9,7 @@ import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.http.server.reactive.ServerHttpResponseDecorator;
@@ -53,6 +54,8 @@ public class OpenApiServerRewriteFilter implements GlobalFilter, Ordered {
                                     servers.addObject().put("url", "/").put("description", "API Gateway");
                                     obj.set("servers", servers);
                                     byte[] rewritten = objectMapper.writeValueAsBytes(root);
+                                    getDelegate().getHeaders().remove(HttpHeaders.TRANSFER_ENCODING);
+                                    getDelegate().getHeaders().setContentLength(rewritten.length);
                                     return super.writeWith(Mono.just(exchange.getResponse().bufferFactory().wrap(rewritten)));
                                 }
                             } catch (Exception ignored) {
