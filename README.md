@@ -4,44 +4,72 @@ A microservices-based e-commerce platform for handmade crafts (jewelry, textiles
 
 ## Architecture
 
-| Microservice | Port | Responsibility | Integrates With |
-|--------------|------|----------------|-----------------|
-| **User Service** | 8080 | Auth, profiles (buyer/seller) | Order, Review |
-| **Listing Service** | 8081 | Product catalog, search | Order |
-| **Order Service** | 8082 | Cart, checkout, mock payment | User, Listing |
-| **Review Service** | 8083 | Post-purchase reviews | User |
+| Component | Port | Responsibility |
+|-----------|------|----------------|
+| **API Gateway** | 8084 | Single entry point, routes to all services |
+| **User Service** | 8080 | Auth, profiles (buyer/seller) |
+| **Listing Service** | 8081 | Product catalog, search |
+| **Order Service** | 8082 | Cart, checkout, mock payment |
+| **Review Service** | 8083 | Post-purchase reviews |
 
 ## Project Structure
 
 ```
 Artisan/
+├── api-gateway/           # API Gateway (Spring Cloud Gateway)
 ├── user-service/          # Auth, profiles
-├── listing-service/       # Product catalog, stock
-├── order-service/         # Cart, checkout
-├── review-service/        # Post-purchase reviews
-├── docs/api-contracts/    # OpenAPI specs
-├── docker-compose.yml     # Run all services locally
-└── .github/workflows/     # CI/CD per service
+├── listing-service/      # Product catalog, stock
+├── order-service/        # Cart, checkout
+├── review-service/       # Post-purchase reviews
+├── docs/api-contracts/   # OpenAPI specs
+├── docker-compose.yml    # Run all services locally
+└── .github/workflows/    # CI/CD per service
 ```
 
 ## Quick Start – All Services
 
 ### Option 1: Docker Compose (recommended)
 
+**Local MongoDB:**
 ```bash
 docker-compose up --build -d
 ```
 
-| Service | URL |
-|---------|-----|
-| User | http://localhost:8080/swagger-ui.html |
-| Listing | http://localhost:8081/swagger-ui.html |
-| Order | http://localhost:8082/swagger-ui.html |
-| Review | http://localhost:8083/swagger-ui.html |
+**MongoDB Atlas:**
+```bash
+# 1. Copy .env.example to .env
+cp .env.example .env
+
+# 2. Edit .env – use Atlas URI without a database name (each service has its own):
+#    SPRING_DATA_MONGODB_URI=mongodb+srv://user:pass@cluster.xxxxx.mongodb.net/?retryWrites=true&w=majority
+
+# 3. Run
+docker-compose up --build -d
+```
+
+| Entry Point | URL |
+|-------------|-----|
+| **API Gateway** (all routes) | http://localhost:8084 |
+| **Unified Swagger UI** (all APIs) | http://localhost:8084/swagger-ui.html |
+| User (via gateway) | http://localhost:8084/api/auth/*, /api/users/* |
+| Listing (via gateway) | http://localhost:8084/api/listings/* |
+| Order (via gateway) | http://localhost:8084/api/orders/* |
+| Review (via gateway) | http://localhost:8084/api/reviews/* |
+
+Direct service URLs (for individual Swagger):
+- User: http://localhost:8080/swagger-ui.html
+- Listing: http://localhost:8081/swagger-ui.html
+- Order: http://localhost:8082/swagger-ui.html
+- Review: http://localhost:8083/swagger-ui.html
 
 ### Option 2: Run Individually (Maven)
 
-Prerequisites: Java 17+, Maven, MongoDB
+Prerequisites: Java 17+, Maven, MongoDB (local or [MongoDB Atlas](https://www.mongodb.com/cloud/atlas))
+
+**With MongoDB Atlas** (omit database name; each service uses its own):
+```bash
+export SPRING_DATA_MONGODB_URI="mongodb+srv://user:pass@cluster.xxxxx.mongodb.net/?retryWrites=true&w=majority"
+```
 
 ```bash
 # Terminal 1 – User Service
@@ -64,6 +92,17 @@ cd review-service && mvn spring-boot:run
 3. **Add to Cart** (Order Service): `POST /api/orders/cart` with header `X-Buyer-Id: <userId>`
 4. **Checkout** (Order Service): `POST /api/orders/checkout` with header `X-Buyer-Id: <userId>`
 5. **Leave Review** (Review Service): `POST /api/reviews` (fetches user profile from User Service)
+
+## Database per Service
+
+Each microservice has its own MongoDB database (same cluster, different databases):
+
+| Service | Database |
+|---------|----------|
+| User | `artisan_users` |
+| Listing | `artisan_listings` |
+| Order | `artisan_orders` |
+| Review | `artisan_reviews` |
 
 ## Integration Points
 

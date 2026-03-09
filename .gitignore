@@ -1,0 +1,4 @@
+# Environment (contains MongoDB Atlas credentials)
+.env
+.env.local
+.env.*.local

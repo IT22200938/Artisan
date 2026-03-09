@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: review-service
+  data:
+    mongodb:
+      uri: ${SPRING_DATA_MONGODB_URI:mongodb://localhost:27017}
+      database: artisan_reviews
+
+server:
+  port: ${PORT:8083}
+
+integration:
+  user-service:
+    url: ${USER_SERVICE_URL:http://localhost:8080}
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html

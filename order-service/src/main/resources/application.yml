@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: order-service
+  data:
+    mongodb:
+      uri: ${SPRING_DATA_MONGODB_URI:mongodb://localhost:27017}
+      database: artisan_orders
+
+server:
+  port: ${PORT:8082}
+
+# Integration URLs (set in docker/k8s for inter-service communication)
+integration:
+  user-service:
+    url: ${USER_SERVICE_URL:http://localhost:8080}
+  listing-service:
+    url: ${LISTING_SERVICE_URL:http://localhost:8081}
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html

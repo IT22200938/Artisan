@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: listing-service
+  data:
+    mongodb:
+      uri: ${SPRING_DATA_MONGODB_URI:mongodb://localhost:27017}
+      database: artisan_listings
+
+server:
+  port: ${PORT:8081}
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
