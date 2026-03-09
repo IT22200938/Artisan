@@ -9,6 +9,15 @@ spring:
 server:
   port: ${PORT:8081}
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: when-authorized
+
 springdoc:
   api-docs:
     path: /v3/api-docs

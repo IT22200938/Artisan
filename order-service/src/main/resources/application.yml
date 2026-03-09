@@ -9,6 +9,15 @@ spring:
 server:
   port: ${PORT:8082}
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: when-authorized
+
 # Integration URLs (set in docker/k8s for inter-service communication)
 integration:
   user-service:
