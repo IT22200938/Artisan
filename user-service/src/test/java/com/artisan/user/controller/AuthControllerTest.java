@@ -29,7 +29,6 @@ class AuthControllerTest {
     static void mongoProps(DynamicPropertyRegistry registry) {
         registry.add("spring.data.mongodb.uri", mongo::getConnectionString);
     }
-class AuthControllerTest {
 
     @Autowired
     private MockMvc mockMvc;

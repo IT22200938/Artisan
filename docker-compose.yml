@@ -3,8 +3,6 @@
 # MongoDB Atlas: Create .env (see .env.example), set SPRING_DATA_MONGODB_URI, then: docker-compose up --build -d
 # Local MongoDB: docker-compose up --build -d
 
-version: '3.8'
-
 services:
   mongodb:
     image: mongo:7
