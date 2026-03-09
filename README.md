@@ -50,12 +50,13 @@ docker-compose up --build -d
 | Entry Point | URL |
 |-------------|-----|
 | **API Gateway** (all routes) | http://localhost:8084 |
+| **Unified Swagger UI** (all APIs) | http://localhost:8084/swagger-ui.html |
 | User (via gateway) | http://localhost:8084/api/auth/*, /api/users/* |
 | Listing (via gateway) | http://localhost:8084/api/listings/* |
 | Order (via gateway) | http://localhost:8084/api/orders/* |
 | Review (via gateway) | http://localhost:8084/api/reviews/* |
 
-Direct service URLs (for Swagger):
+Direct service URLs (for individual Swagger):
 - User: http://localhost:8080/swagger-ui.html
 - Listing: http://localhost:8081/swagger-ui.html
 - Order: http://localhost:8082/swagger-ui.html
