@@ -15,7 +15,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 class ReviewServiceApplicationTests {
 
     @Container
-    static MongoDBContainer mongo = new MongoDBContainer("mongo:7");
+    static MongoDBContainer mongo = new MongoDBContainer("mongo:6");
 
     @MockBean
     UserServiceClient userServiceClient;
