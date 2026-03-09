@@ -28,7 +28,20 @@ Artisan/
 
 ### Option 1: Docker Compose (recommended)
 
+**Local MongoDB:**
 ```bash
+docker-compose up --build -d
+```
+
+**MongoDB Atlas:**
+```bash
+# 1. Copy .env.example to .env
+cp .env.example .env
+
+# 2. Edit .env – use Atlas URI without a database name (each service has its own):
+#    SPRING_DATA_MONGODB_URI=mongodb+srv://user:pass@cluster.xxxxx.mongodb.net/?retryWrites=true&w=majority
+
+# 3. Run
 docker-compose up --build -d
 ```
 
@@ -41,7 +54,12 @@ docker-compose up --build -d
 
 ### Option 2: Run Individually (Maven)
 
-Prerequisites: Java 17+, Maven, MongoDB
+Prerequisites: Java 17+, Maven, MongoDB (local or [MongoDB Atlas](https://www.mongodb.com/cloud/atlas))
+
+**With MongoDB Atlas** (omit database name; each service uses its own):
+```bash
+export SPRING_DATA_MONGODB_URI="mongodb+srv://user:pass@cluster.xxxxx.mongodb.net/?retryWrites=true&w=majority"
+```
 
 ```bash
 # Terminal 1 – User Service
@@ -64,6 +82,17 @@ cd review-service && mvn spring-boot:run
 3. **Add to Cart** (Order Service): `POST /api/orders/cart` with header `X-Buyer-Id: <userId>`
 4. **Checkout** (Order Service): `POST /api/orders/checkout` with header `X-Buyer-Id: <userId>`
 5. **Leave Review** (Review Service): `POST /api/reviews` (fetches user profile from User Service)
+
+## Database per Service
+
+Each microservice has its own MongoDB database (same cluster, different databases):
+
+| Service | Database |
+|---------|----------|
+| User | `artisan_users` |
+| Listing | `artisan_listings` |
+| Order | `artisan_orders` |
+| Review | `artisan_reviews` |
 
 ## Integration Points
 

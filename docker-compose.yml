@@ -1,5 +1,7 @@
-# Local development - run all 4 microservices + MongoDB
-# Usage: docker-compose up --build -d
+# Run all 4 microservices
+#
+# MongoDB Atlas: Create .env (see .env.example), set SPRING_DATA_MONGODB_URI, then: docker-compose up --build -d
+# Local MongoDB: docker-compose up --build -d
 
 version: '3.8'
 
@@ -18,8 +20,8 @@ services:
     ports:
       - "8080:8080"
     environment:
-      SPRING_DATA_MONGODB_URI: mongodb://mongodb:27017/artisan
-      JWT_SECRET: dev-secret-change-in-production-min-256-bits
+      SPRING_DATA_MONGODB_URI: ${SPRING_DATA_MONGODB_URI:-mongodb://mongodb:27017}
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-in-production-min-256-bits}
     depends_on:
       - mongodb
 
@@ -30,7 +32,7 @@ services:
     ports:
       - "8081:8081"
     environment:
-      SPRING_DATA_MONGODB_URI: mongodb://mongodb:27017/artisan
+      SPRING_DATA_MONGODB_URI: ${SPRING_DATA_MONGODB_URI:-mongodb://mongodb:27017}
     depends_on:
       - mongodb
 
@@ -41,11 +43,10 @@ services:
     ports:
       - "8082:8082"
     environment:
-      SPRING_DATA_MONGODB_URI: mongodb://mongodb:27017/artisan
+      SPRING_DATA_MONGODB_URI: ${SPRING_DATA_MONGODB_URI:-mongodb://mongodb:27017}
       USER_SERVICE_URL: http://user-service:8080
       LISTING_SERVICE_URL: http://listing-service:8081
     depends_on:
-      - mongodb
       - user-service
       - listing-service
 
@@ -56,10 +57,9 @@ services:
     ports:
       - "8083:8083"
     environment:
-      SPRING_DATA_MONGODB_URI: mongodb://mongodb:27017/artisan
+      SPRING_DATA_MONGODB_URI: ${SPRING_DATA_MONGODB_URI:-mongodb://mongodb:27017}
       USER_SERVICE_URL: http://user-service:8080
     depends_on:
-      - mongodb
       - user-service
 
 volumes:
