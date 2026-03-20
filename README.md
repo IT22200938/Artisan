@@ -114,14 +114,19 @@ Each microservice has its own MongoDB database (same cluster, different database
 
 ## CI/CD
 
-Each service has its own workflow (triggers on path changes):
+Each backend service has its own GitHub Actions workflow and deploys to Azure Container Apps on pushes to `main` or `master`.
 
-- `user-service-ci.yml` → User Service
-- `listing-service-ci.yml` → Listing Service
-- `order-service-ci.yml` → Order Service
-- `review-service-ci.yml` → Review Service
+- `user-service-ci.yml` -> User Service
+- `listing-service-ci.yml` -> Listing Service
+- `order-service-ci.yml` -> Order Service
+- `review-service-ci.yml` -> Review Service
+- `api-gateway-ci.yml` -> API Gateway
 
-GitHub secrets for deploy: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`, `SONAR_TOKEN`
+Required GitHub repository secrets: `AZURE_CREDENTIALS`, `SPRING_DATA_MONGODB_URI`, `SONAR_TOKEN` (optional)
+
+Required GitHub repository variables: `AZURE_RESOURCE_GROUP`, `AZURE_ACR_NAME`
+
+Setup details: `docs/azure-backend-cicd.md`
 
 ## Assignment Deliverables
 

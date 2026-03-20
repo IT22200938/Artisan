@@ -1,0 +1,215 @@
+name: Azure Container Apps Deploy
+
+on:
+  workflow_call:
+    inputs:
+      service_name:
+        required: true
+        type: string
+      service_path:
+        required: true
+        type: string
+      container_app_name:
+        required: true
+        type: string
+      build_command:
+        required: true
+        type: string
+      set_mongodb_secret:
+        required: false
+        default: false
+        type: boolean
+      inject_user_service_url:
+        required: false
+        default: false
+        type: boolean
+      inject_listing_service_url:
+        required: false
+        default: false
+        type: boolean
+      inject_order_service_url:
+        required: false
+        default: false
+        type: boolean
+      inject_review_service_url:
+        required: false
+        default: false
+        type: boolean
+      enable_sonar:
+        required: false
+        default: false
+        type: boolean
+      sonar_project_key:
+        required: false
+        default: ""
+        type: string
+    secrets:
+      AZURE_CREDENTIALS:
+        required: true
+      SPRING_DATA_MONGODB_URI:
+        required: false
+      SONAR_TOKEN:
+        required: false
+
+concurrency:
+  group: deploy-${{ inputs.container_app_name }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      AZURE_CORE_OUTPUT: none
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: temurin
+          cache: maven
+          cache-dependency-path: ${{ inputs.service_path }}/pom.xml
+
+      - name: Build with Maven
+        working-directory: ${{ inputs.service_path }}
+        run: ${{ inputs.build_command }}
+
+      - name: SonarCloud scan
+        if: inputs.enable_sonar && github.event_name == 'push' && secrets.SONAR_TOKEN != ''
+        continue-on-error: true
+        working-directory: ${{ inputs.service_path }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          mvn clean verify sonar:sonar \
+            -Dsonar.projectKey=${{ inputs.sonar_project_key }} \
+            -Dsonar.organization=${{ github.repository_owner }} \
+            -DskipTests
+
+      - name: Azure login
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+        uses: azure/login@v3
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Install Container Apps extension
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+        run: az extension add --name containerapp --upgrade --yes
+
+      - name: Resolve service URLs
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && (inputs.inject_user_service_url || inputs.inject_listing_service_url || inputs.inject_order_service_url || inputs.inject_review_service_url)
+        shell: bash
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+        run: |
+          get_service_url() {
+            local app_name="$1"
+            local fqdn
+            fqdn="$(az containerapp show --name "$app_name" --resource-group "$RESOURCE_GROUP" --query properties.configuration.ingress.fqdn --output tsv)"
+            if [ -z "$fqdn" ]; then
+              echo "Missing ingress FQDN for $app_name" >&2
+              exit 1
+            fi
+            printf 'https://%s' "$fqdn"
+          }
+
+          echo "USER_SERVICE_URL=$(get_service_url user-service)" >> "$GITHUB_ENV"
+          echo "LISTING_SERVICE_URL=$(get_service_url listing-service)" >> "$GITHUB_ENV"
+          echo "ORDER_SERVICE_URL=$(get_service_url order-service)" >> "$GITHUB_ENV"
+          echo "REVIEW_SERVICE_URL=$(get_service_url review-service)" >> "$GITHUB_ENV"
+
+      - name: Set MongoDB secret on Container App
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && inputs.set_mongodb_secret
+        shell: bash
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          SPRING_DATA_MONGODB_URI: ${{ secrets.SPRING_DATA_MONGODB_URI }}
+        run: |
+          if [ -z "$SPRING_DATA_MONGODB_URI" ]; then
+            echo "SPRING_DATA_MONGODB_URI secret is required for ${{ inputs.container_app_name }}" >&2
+            exit 1
+          fi
+
+          az containerapp secret set \
+            --name "${{ inputs.container_app_name }}" \
+            --resource-group "$RESOURCE_GROUP" \
+            --secrets spring-data-mongodb-uri="$SPRING_DATA_MONGODB_URI"
+
+      - name: Build and push Docker image
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+        shell: bash
+        env:
+          ACR_NAME: ${{ vars.AZURE_ACR_NAME }}
+        run: |
+          if [ -z "$ACR_NAME" ]; then
+            echo "AZURE_ACR_NAME repository variable is required." >&2
+            exit 1
+          fi
+
+          ACR_LOGIN_SERVER="$(az acr show --name "$ACR_NAME" --query loginServer --output tsv)"
+          if [ -z "$ACR_LOGIN_SERVER" ]; then
+            echo "Unable to resolve ACR login server for $ACR_NAME" >&2
+            exit 1
+          fi
+
+          IMAGE_TAG="${GITHUB_SHA}"
+          IMAGE_NAME="$ACR_LOGIN_SERVER/${{ inputs.service_name }}:$IMAGE_TAG"
+
+          az acr login --name "$ACR_NAME"
+          docker build -t "$IMAGE_NAME" "./${{ inputs.service_path }}"
+          docker push "$IMAGE_NAME"
+
+          echo "IMAGE_NAME=$IMAGE_NAME" >> "$GITHUB_ENV"
+
+      - name: Update Azure Container App
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+        shell: bash
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+        run: |
+          if [ -z "$RESOURCE_GROUP" ]; then
+            echo "AZURE_RESOURCE_GROUP repository variable is required." >&2
+            exit 1
+          fi
+
+          env_args=()
+
+          if [ "${{ inputs.set_mongodb_secret }}" = "true" ]; then
+            env_args+=("SPRING_DATA_MONGODB_URI=secretref:spring-data-mongodb-uri")
+          fi
+
+          if [ "${{ inputs.inject_user_service_url }}" = "true" ]; then
+            env_args+=("USER_SERVICE_URL=$USER_SERVICE_URL")
+          fi
+
+          if [ "${{ inputs.inject_listing_service_url }}" = "true" ]; then
+            env_args+=("LISTING_SERVICE_URL=$LISTING_SERVICE_URL")
+          fi
+
+          if [ "${{ inputs.inject_order_service_url }}" = "true" ]; then
+            env_args+=("ORDER_SERVICE_URL=$ORDER_SERVICE_URL")
+          fi
+
+          if [ "${{ inputs.inject_review_service_url }}" = "true" ]; then
+            env_args+=("REVIEW_SERVICE_URL=$REVIEW_SERVICE_URL")
+          fi
+
+          if [ "${#env_args[@]}" -gt 0 ]; then
+            az containerapp update \
+              --name "${{ inputs.container_app_name }}" \
+              --resource-group "$RESOURCE_GROUP" \
+              --image "$IMAGE_NAME" \
+              --set-env-vars "${env_args[@]}"
+          else
+            az containerapp update \
+              --name "${{ inputs.container_app_name }}" \
+              --resource-group "$RESOURCE_GROUP" \
+              --image "$IMAGE_NAME"
+          fi
