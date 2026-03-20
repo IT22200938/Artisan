@@ -7,7 +7,10 @@ import com.artisan.review.model.Review;
 import com.artisan.review.repository.ReviewRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.List;
@@ -24,7 +27,7 @@ public class ReviewService {
     public ReviewResponse create(CreateReviewRequest request) {
         var existing = repository.findByOrderIdAndUserId(request.getOrderId(), request.getUserId());
         if (existing.isPresent()) {
-            throw new IllegalStateException("Review already exists for this order");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Review already exists for this order");
         }
 
         Review review = Review.builder()
@@ -44,7 +47,21 @@ public class ReviewService {
     }
 
     public List<ReviewResponse> getByListing(String listingId, int page, int size) {
-        return repository.findByListingIdAndVisibleTrue(listingId, PageRequest.of(page, size))
+        return repository.findByListingIdAndVisibleTrue(listingId, PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt")))
+                .stream()
+                .map(r -> {
+                    var profile = userServiceClient.getUserProfile(r.getUserId());
+                    return toResponse(r, profile.displayName(), profile.avatarUrl());
+                })
+                .collect(Collectors.toList());
+    }
+
+    public List<ReviewResponse> getByListings(List<String> listingIds, int page, int size) {
+        if (listingIds == null || listingIds.isEmpty()) {
+            return List.of();
+        }
+
+        return repository.findByListingIdInAndVisibleTrue(listingIds, PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt")))
                 .stream()
                 .map(r -> {
                     var profile = userServiceClient.getUserProfile(r.getUserId());

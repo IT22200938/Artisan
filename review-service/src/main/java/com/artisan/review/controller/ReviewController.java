@@ -36,4 +36,13 @@ public class ReviewController {
             @RequestParam(defaultValue = "20") int size) {
         return ResponseEntity.ok(reviewService.getByListing(listingId, page, size));
     }
+
+    @GetMapping("/listings")
+    @Operation(summary = "Get reviews for multiple listings")
+    public ResponseEntity<List<ReviewResponse>> getByListings(
+            @RequestParam List<String> listingIds,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size) {
+        return ResponseEntity.ok(reviewService.getByListings(listingIds, page, size));
+    }
 }

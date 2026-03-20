@@ -7,8 +7,11 @@ import com.artisan.listing.model.Listing;
 import com.artisan.listing.repository.ListingRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.List;
@@ -43,12 +46,12 @@ public class ListingService {
 
     public ListingResponse getById(String id) {
         Listing listing = repository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Listing not found: " + id));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found: " + id));
         return toResponse(listing);
     }
 
     public List<ListingResponse> list(int page, int size) {
-        return repository.findByActiveTrue(PageRequest.of(page, size))
+        return repository.findByActiveTrue(PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt")))
                 .stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
@@ -58,14 +61,21 @@ public class ListingService {
         if (query == null || query.isBlank()) {
             return list(page, size);
         }
-        return repository.searchByText(query, PageRequest.of(page, size))
+        return repository.searchByText(query, PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt")))
                 .stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
     }
 
     public List<ListingResponse> byCategory(String category, int page, int size) {
-        return repository.findByCategoryAndActiveTrue(category, PageRequest.of(page, size))
+        return repository.findByCategoryAndActiveTrue(category, PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt")))
+                .stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    public List<ListingResponse> bySeller(String sellerId, int page, int size) {
+        return repository.findBySellerId(sellerId, PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt")))
                 .stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
@@ -76,7 +86,7 @@ public class ListingService {
      */
     public StockCheckResponse checkStock(String listingId, int quantity) {
         Listing listing = repository.findById(listingId)
-                .orElseThrow(() -> new IllegalArgumentException("Listing not found: " + listingId));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found: " + listingId));
         boolean available = listing.getStockQuantity() >= quantity && listing.isActive();
         return StockCheckResponse.builder()
                 .available(available)
@@ -89,9 +99,9 @@ public class ListingService {
     @Transactional
     public void reduceStock(String listingId, int quantity) {
         Listing listing = repository.findById(listingId)
-                .orElseThrow(() -> new IllegalArgumentException("Listing not found: " + listingId));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found: " + listingId));
         if (listing.getStockQuantity() < quantity) {
-            throw new IllegalStateException("Insufficient stock for listing: " + listingId);
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Insufficient stock for listing: " + listingId);
         }
         listing.setStockQuantity(listing.getStockQuantity() - quantity);
         listing.setUpdatedAt(Instant.now());

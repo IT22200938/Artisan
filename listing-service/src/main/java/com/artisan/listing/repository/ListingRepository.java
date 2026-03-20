@@ -16,6 +16,8 @@ public interface ListingRepository extends MongoRepository<Listing, String> {
 
     Page<Listing> findBySellerIdAndActiveTrue(String sellerId, Pageable pageable);
 
+    Page<Listing> findBySellerId(String sellerId, Pageable pageable);
+
     @Query("{ $or: [ { title: { $regex: ?0, $options: 'i' } }, { description: { $regex: ?0, $options: 'i' } } ], active: true }")
     List<Listing> searchByText(String searchTerm, Pageable pageable);
 }
