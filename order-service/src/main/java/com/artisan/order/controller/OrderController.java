@@ -44,6 +44,12 @@ public class OrderController {
         return ResponseEntity.ok(orderService.getOrdersByBuyer(buyerId));
     }
 
+    @GetMapping("/seller/{sellerId}")
+    @Operation(summary = "List orders containing items sold by a seller")
+    public ResponseEntity<List<OrderResponse>> getSellerOrders(@PathVariable String sellerId) {
+        return ResponseEntity.ok(orderService.getOrdersBySeller(sellerId));
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Get order by ID")
     public ResponseEntity<OrderResponse> getOrder(@PathVariable String id) {

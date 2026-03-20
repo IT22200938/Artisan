@@ -9,13 +9,18 @@ import com.artisan.order.model.Order;
 import com.artisan.order.repository.CartRepository;
 import com.artisan.order.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -30,12 +35,12 @@ public class OrderService {
 
     public void addToCart(String buyerId, AddToCartRequest request) {
         if (!userServiceClient.validateUser(buyerId)) {
-            throw new IllegalArgumentException("Invalid user: " + buyerId);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid user: " + buyerId);
         }
 
         var stockCheck = listingServiceClient.checkStock(request.getListingId(), request.getQuantity());
         if (!stockCheck.available()) {
-            throw new IllegalStateException("Insufficient stock for listing " + request.getListingId());
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Insufficient stock for listing " + request.getListingId());
         }
 
         var listingInfo = listingServiceClient.getListing(request.getListingId());
@@ -70,14 +75,14 @@ public class OrderService {
     @Transactional
     public OrderResponse checkout(String buyerId) {
         if (!userServiceClient.validateUser(buyerId)) {
-            throw new IllegalArgumentException("Invalid user: " + buyerId);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid user: " + buyerId);
         }
 
         Cart cart = cartRepository.findByBuyerId(buyerId)
-                .orElseThrow(() -> new IllegalStateException("Cart is empty"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cart is empty"));
 
         if (cart.getItems().isEmpty()) {
-            throw new IllegalStateException("Cart is empty");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cart is empty");
         }
 
         List<Order.OrderItem> orderItems = new ArrayList<>();
@@ -87,7 +92,7 @@ public class OrderService {
         for (var item : cart.getItems()) {
             var stockCheck = listingServiceClient.checkStock(item.getListingId(), item.getQuantity());
             if (!stockCheck.available()) {
-                throw new IllegalStateException("Insufficient stock for listing " + item.getListingId());
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Insufficient stock for listing " + item.getListingId());
             }
             BigDecimal lineTotal = item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity()));
             total = total.add(lineTotal);
@@ -129,9 +134,19 @@ public class OrderService {
                 .collect(Collectors.toList());
     }
 
+    public List<OrderResponse> getOrdersBySeller(String sellerId) {
+        Map<String, String> listingSellerCache = new HashMap<>();
+
+        return orderRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"))
+                .stream()
+                .map(order -> toSellerOrderResponse(order, sellerId, listingSellerCache))
+                .filter(response -> !response.getItems().isEmpty())
+                .toList();
+    }
+
     public OrderResponse getOrder(String orderId) {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found: " + orderId));
         return toResponse(order);
     }
 
@@ -154,5 +169,37 @@ public class OrderService {
                 .currency(order.getCurrency())
                 .createdAt(order.getCreatedAt())
                 .build();
+    }
+
+    private OrderResponse toSellerOrderResponse(Order order, String sellerId, Map<String, String> listingSellerCache) {
+        var sellerItems = order.getItems().stream()
+                .filter(item -> isSellerListing(item.getListingId(), sellerId, listingSellerCache))
+                .map(item -> new OrderResponse.OrderItemResponse(
+                        item.getListingId(),
+                        item.getTitle(),
+                        item.getQuantity(),
+                        item.getUnitPrice(),
+                        item.getLineTotal()
+                ))
+                .toList();
+
+        BigDecimal sellerTotal = sellerItems.stream()
+                .map(OrderResponse.OrderItemResponse::getLineTotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        return OrderResponse.builder()
+                .id(order.getId())
+                .buyerId(order.getBuyerId())
+                .status(order.getStatus().name())
+                .items(sellerItems)
+                .totalAmount(sellerTotal)
+                .currency(order.getCurrency())
+                .createdAt(order.getCreatedAt())
+                .build();
+    }
+
+    private boolean isSellerListing(String listingId, String sellerId, Map<String, String> listingSellerCache) {
+        String ownerId = listingSellerCache.computeIfAbsent(listingId, id -> listingServiceClient.getListing(id).sellerId());
+        return sellerId.equals(ownerId);
     }
 }

@@ -63,6 +63,15 @@ public class ListingController {
         return ResponseEntity.ok(listingService.byCategory(category, page, size));
     }
 
+    @GetMapping("/seller/{sellerId}")
+    @Operation(summary = "List listings owned by a seller")
+    public ResponseEntity<List<ListingResponse>> bySeller(
+            @PathVariable String sellerId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(listingService.bySeller(sellerId, page, size));
+    }
+
     @PostMapping("/stock/check")
     @Operation(summary = "Check stock availability (for Order Service integration)")
     public ResponseEntity<StockCheckResponse> checkStock(@Valid @RequestBody StockCheckRequest request) {

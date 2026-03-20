@@ -3,36 +3,28 @@ name: API Gateway CI/CD
 on:
   push:
     branches: [main, master]
-    paths: ['api-gateway/**']
+    paths:
+      - "api-gateway/**"
+      - ".github/workflows/api-gateway-ci.yml"
+      - ".github/workflows/azure-containerapp-deploy.yml"
   pull_request:
     branches: [main, master]
-    paths: ['api-gateway/**']
-
-env:
-  ECR_REPOSITORY: artisan-api-gateway
+    paths:
+      - "api-gateway/**"
+      - ".github/workflows/api-gateway-ci.yml"
+      - ".github/workflows/azure-containerapp-deploy.yml"
+  workflow_dispatch:
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: api-gateway
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: maven
-          cache-dependency-path: api-gateway/pom.xml
-      - name: Build with Maven
-        run: mvn clean package -DskipTests -B
-      - name: Run Tests
-        run: mvn test -B
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: api-gateway-jar
-          path: api-gateway/target/api-gateway-*.jar
-          if-no-files-found: error
+  deploy:
+    uses: ./.github/workflows/azure-containerapp-deploy.yml
+    with:
+      service_name: api-gateway
+      service_path: api-gateway
+      container_app_name: api-gateway
+      build_command: mvn clean verify -B
+      inject_user_service_url: true
+      inject_listing_service_url: true
+      inject_order_service_url: true
+      inject_review_service_url: true
+    secrets: inherit
