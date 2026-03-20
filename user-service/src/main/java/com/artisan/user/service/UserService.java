@@ -5,7 +5,9 @@ import com.artisan.user.dto.UserProfileResponse;
 import com.artisan.user.model.User;
 import com.artisan.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 
@@ -17,13 +19,13 @@ public class UserService {
 
     public UserProfileResponse getProfile(String userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found: " + userId));
         return toProfileResponse(user);
     }
 
     public UserProfileResponse updateProfile(String userId, UpdateProfileRequest request) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found: " + userId));
 
         if (request.getDisplayName() != null) {
             user.setDisplayName(request.getDisplayName());

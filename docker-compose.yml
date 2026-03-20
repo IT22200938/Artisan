@@ -18,7 +18,7 @@ services:
       context: ./user-service
       dockerfile: Dockerfile.compose
     ports:
-      - "8080:8080"
+      - "8086:8080"
     environment:
       SPRING_DATA_MONGODB_URI: ${SPRING_DATA_MONGODB_URI:-mongodb://mongodb:27017}
       JWT_SECRET: ${JWT_SECRET:-dev-secret-change-in-production-min-256-bits}
