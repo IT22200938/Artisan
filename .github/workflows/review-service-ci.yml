@@ -1,21 +1,20 @@
-name: Review Service CI/CD
+name: Review Service CI
 
 on:
   push:
     branches: [fix/security]
     paths:
       - "review-service/**"
+      - ".github/workflows/review-service-ci.yml"
+      - ".github/workflows/azure-containerapp-deploy.yml"
 
 jobs:
-  deploy:
+  build-and-push:
     uses: ./.github/workflows/azure-containerapp-deploy.yml
     with:
       service_name: review-service
       service_path: review-service
-      container_app_name: review-service
       build_command: mvn clean verify -B
-      set_mongodb_secret: true
-      inject_user_service_url: true
       enable_sonar: true
       sonar_project_key: ${{ github.repository_owner }}_artisan-review-service
     secrets: inherit

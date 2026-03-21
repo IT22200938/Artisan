@@ -23,7 +23,7 @@ Artisan/
 ├── review-service/       # Post-purchase reviews
 ├── docs/api-contracts/   # OpenAPI specs
 ├── docker-compose.yml    # Run all services locally
-└── .github/workflows/    # CI/CD per service
+└── .github/workflows/    # CI per service
 ```
 
 ## Quick Start – All Services
@@ -112,9 +112,9 @@ Each microservice has its own MongoDB database (same cluster, different database
 | Order | Listing | Check stock, reduce stock on checkout |
 | Review | User | Fetch `displayName`, `avatarUrl` for reviews |
 
-## CI/CD
+## CI
 
-Each backend service has its own GitHub Actions workflow and deploys to Azure Container Apps on pushes to `main` or `master`.
+Each backend service has its own GitHub Actions workflow and builds a Docker image for Azure Container Registry on pushes to `fix/security`.
 
 - `user-service-ci.yml` -> User Service
 - `listing-service-ci.yml` -> Listing Service
@@ -122,9 +122,9 @@ Each backend service has its own GitHub Actions workflow and deploys to Azure Co
 - `review-service-ci.yml` -> Review Service
 - `api-gateway-ci.yml` -> API Gateway
 
-Required GitHub repository secrets: `AZURE_CREDENTIALS`, `SPRING_DATA_MONGODB_URI`, `SONAR_TOKEN` (optional)
+Required GitHub repository secrets: `ACR_LOGIN_SERVER`, `ACR_USERNAME`, `ACR_PASSWORD`, `SONAR_TOKEN` (optional)
 
-Required GitHub repository variables: `AZURE_RESOURCE_GROUP`, `AZURE_ACR_NAME`
+Runtime app settings such as `SPRING_DATA_MONGODB_URI`, `USER_SERVICE_URL`, `LISTING_SERVICE_URL`, `ORDER_SERVICE_URL`, and `REVIEW_SERVICE_URL` must be configured in Azure separately.
 
 Setup details: `docs/azure-backend-cicd.md`
 

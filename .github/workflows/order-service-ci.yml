@@ -1,31 +1,20 @@
-name: Order Service CI/CD
+name: Order Service CI
 
 on:
   push:
-    branches: [main, master]
+    branches: [fix/security]
     paths:
       - "order-service/**"
       - ".github/workflows/order-service-ci.yml"
       - ".github/workflows/azure-containerapp-deploy.yml"
-  pull_request:
-    branches: [main, master]
-    paths:
-      - "order-service/**"
-      - ".github/workflows/order-service-ci.yml"
-      - ".github/workflows/azure-containerapp-deploy.yml"
-  workflow_dispatch:
 
 jobs:
-  deploy:
+  build-and-push:
     uses: ./.github/workflows/azure-containerapp-deploy.yml
     with:
       service_name: order-service
       service_path: order-service
-      container_app_name: order-service
       build_command: mvn clean package -DskipTests -B
-      set_mongodb_secret: true
-      inject_user_service_url: true
-      inject_listing_service_url: true
       enable_sonar: true
       sonar_project_key: ${{ github.repository_owner }}_artisan-order-service
     secrets: inherit

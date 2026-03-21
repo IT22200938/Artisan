@@ -1,32 +1,25 @@
-# Azure Backend CI/CD
+# Azure Backend CI
 
-This repo now deploys each backend service to Azure Container Apps from GitHub Actions.
+This repo now builds each backend service in GitHub Actions and pushes the Docker image to Azure Container Registry (ACR).
+The workflows avoid `azure/login` and `az containerapp` commands so they can run from a limited Azure student account.
 
 ## What the workflows do
 
 - Build the changed Spring service with Maven.
 - Optionally run SonarCloud on push if `SONAR_TOKEN` exists.
-- Log in to Azure with `azure/login`.
+- Log in to ACR directly with `docker login`.
 - Build and push a Docker image to Azure Container Registry.
-- Update the matching Azure Container App to the new image.
-- Refresh service env vars so the gateway and inter-service clients point at the current Container App FQDNs.
-- Store MongoDB connection strings as Container App secrets instead of hardcoding them in workflow files.
 
 ## Required GitHub repository secrets
 
-- `AZURE_CREDENTIALS`
-  - Azure service principal JSON for GitHub Actions.
-- `SPRING_DATA_MONGODB_URI`
-  - Shared MongoDB Atlas connection string used by the Spring services.
+- `ACR_LOGIN_SERVER`
+  - Example: `artisanregistry.azurecr.io`
+- `ACR_USERNAME`
+  - The admin or service account username for your registry.
+- `ACR_PASSWORD`
+  - The matching password for the registry account.
 - `SONAR_TOKEN`
   - Optional. Only needed if you want SonarCloud scans to keep running.
-
-## Required GitHub repository variables
-
-- `AZURE_RESOURCE_GROUP`
-  - Example: `artisan-rg`
-- `AZURE_ACR_NAME`
-  - Example: `artisanregistry`
 
 ## Services covered
 
@@ -36,21 +29,20 @@ This repo now deploys each backend service to Azure Container Apps from GitHub A
 - `review-service`
 - `api-gateway`
 
-Each service has its own workflow file under `.github/workflows/` and automatically deploys on push to `main` or `master` when files in that service change.
+Each service now builds and pushes on the `fix/security` branch when files in that service change.
 
-## How service URLs are handled
+## Runtime configuration
 
-The reusable workflow queries Azure for the live ingress FQDN of:
+The workflows no longer update Azure Container Apps for you. Configure these values directly in Azure Portal, Azure CLI, or any deployment tool that has the required RBAC:
 
-- `user-service`
-- `listing-service`
-- `order-service`
-- `review-service`
-
-It then injects the corresponding `https://...azurecontainerapps.io` URLs into the services that need them.
+- `SPRING_DATA_MONGODB_URI` on `user-service`, `listing-service`, `order-service`, and `review-service`
+- `USER_SERVICE_URL` on `order-service`, `review-service`, and `api-gateway`
+- `LISTING_SERVICE_URL` on `order-service` and `api-gateway`
+- `ORDER_SERVICE_URL` on `api-gateway`
+- `REVIEW_SERVICE_URL` on `api-gateway`
 
 ## Important
 
-- These workflows update existing Container Apps. They do not create the Azure infrastructure for you.
-- Make sure each Container App already exists and is configured to pull images from your ACR.
-- Rotate any ACR passwords or MongoDB credentials that were shared in chat before you rely on this pipeline.
+- These workflows only publish images. They do not create infrastructure or roll out a new Container App revision.
+- Make sure each Azure service is already configured to pull images from your ACR if you still want runtime deployments.
+- If you later get broader Azure permissions, you can add a separate deployment workflow for Container Apps.

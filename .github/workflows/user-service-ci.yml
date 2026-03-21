@@ -1,29 +1,20 @@
-name: User Service CI/CD
+name: User Service CI
 
 on:
   push:
-    branches: [main, master]
+    branches: [fix/security]
     paths:
       - "user-service/**"
       - ".github/workflows/user-service-ci.yml"
       - ".github/workflows/azure-containerapp-deploy.yml"
-  pull_request:
-    branches: [main, master]
-    paths:
-      - "user-service/**"
-      - ".github/workflows/user-service-ci.yml"
-      - ".github/workflows/azure-containerapp-deploy.yml"
-  workflow_dispatch:
 
 jobs:
-  deploy:
+  build-and-push:
     uses: ./.github/workflows/azure-containerapp-deploy.yml
     with:
       service_name: user-service
       service_path: user-service
-      container_app_name: user-service
       build_command: mvn clean package -DskipTests -B
-      set_mongodb_secret: true
       enable_sonar: true
       sonar_project_key: ${{ github.repository_owner }}_artisan-user-service
     secrets: inherit
