@@ -81,7 +81,7 @@ jobs:
         run: ${{ inputs.build_command }}
 
       - name: SonarCloud scan
-        if: inputs.enable_sonar && github.event_name == 'push' && secrets.SONAR_TOKEN != ''
+        if: inputs.enable_sonar && github.event_name == 'push'
         continue-on-error: true
         working-directory: ${{ inputs.service_path }}
         env:
