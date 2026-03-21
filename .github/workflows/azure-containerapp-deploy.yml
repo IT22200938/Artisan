@@ -58,13 +58,18 @@ jobs:
         run: ${{ inputs.build_command }}
 
       - name: SonarCloud scan
-        if: inputs.enable_sonar && github.event_name == 'push' && secrets.SONAR_TOKEN != ''
+        if: inputs.enable_sonar && github.event_name == 'push'
         continue-on-error: true
         working-directory: ${{ inputs.service_path }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
+          if [ -z "$SONAR_TOKEN" ]; then
+            echo "SONAR_TOKEN is not configured. Skipping SonarCloud scan."
+            exit 0
+          fi
+
           mvn clean verify sonar:sonar \
             -Dsonar.projectKey=${{ inputs.sonar_project_key }} \
             -Dsonar.organization=${{ github.repository_owner }} \
