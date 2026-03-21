@@ -18,3 +18,7 @@ jobs:
       enable_sonar: true
       sonar_project_key: ${{ github.repository_owner }}_artisan-user-service
     secrets: inherit
+    # secrets:
+    #   ACR_LOGIN_SERVER: ${{ secrets.REVIEW_AZ2_ACR_LOGIN_SERVER }}
+    #   ACR_USERNAME: ${{ secrets.REVIEW_AZ2_ACR_USERNAME }}
+    #   ACR_PASSWORD: ${{ secrets.REVIEW_AZ2_ACR_PASSWORD }}
